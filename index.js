@@ -77,7 +77,60 @@ const viewAllRoles = () => {
         mainMenu();
     });
 };
-{
+
+const viewAllEmployees = () => {
     const query = `
-    Select `
-}
+    SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary,
+    (SELECT first_name || ' ' || last_name FROM employee WHERE id = employee.manager_id) AS manager
+     FROM employee
+     JOIN role ON employee.role_id = role.id
+     JOIN department ON role.department_id = department.id
+    `;
+    client.query(query, (err, res) => {
+        if (err) throw err;
+        console.table(res.rows);
+        mainMenu();
+    });
+};
+
+const addDepartment = () => {
+    inquirer.prompt({
+        name:'name',
+        type: 'input',
+        message: 'Enter the name of the pepartment:'
+    }).then((answer) => {
+        client.query('INSERT INTO department (name) VALUES ($1)', [answer.name], (err, res) => {
+            if (err) throw err;
+            console.log('Department added!');
+            mainMenu();
+        });
+        
+    });
+};
+
+const addRole = () => {
+    inquirer.prompt([
+        {
+            name: 'title',
+            type: 'input',
+            message: 'Enter the role title:'
+        },
+        {
+            name: 'salary',
+            type: 'input',
+            message: 'Enter the salary for this role:'
+        },
+        {
+            name: 'department_id',
+            type: 'input',
+            message: 'Enter the department ID for this role:'
+        }
+    ]).then((answers) => {
+        client.query('INSERT INTO role (title, salary, department_id) VALUES ($1, $2, $3)', [answers.title, answers.salary, answers.department_id], (err, res) => {
+            if (err) throw err;
+            console.log('Role added!');
+            mainMenu();  
+        });
+    });
+};
+

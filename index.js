@@ -3,17 +3,17 @@ const path = require('path');
 const { Client } = require('pg');
 const inquirer = require('inquirer');
 
-const client = new Client ({
+const dbConfig = new Client ({
     user: 'postgres',
     host: 'localhost',
     database: 'employee_db',
     password: 'password',
-    port:3000,
+    port:5432,
 });
 
-client.connect();
 
-const runSQLFile = async (filePath) => {
+
+const runSQLFile = async (client, filePath) => {
     const sql = fs.readFileSync(path.join(__dirname, filePath)).toString();
     try {
         await client.query(sql);
@@ -22,9 +22,16 @@ const runSQLFile = async (filePath) => {
     }
 };
 
+const createDatabase = async () => {
+    const tempClient = new Client( {...dbConfig, database: 'postgres'}); // Connect to default 'postgres' database
+    await tempClient.connect();
+    await runSQLFile(tempClient, 'db/create_database.sql');
+    await tempClient.end();
+};
+
 const initializeDatabase = async () => {
-    await runSQLFile('schema.sql');
-    await runSQLFile('seeds.sql');
+    await runSQLFile('db/schema.sql');
+    await runSQLFile('db/seeds.sql');
 };
 
 const mainMenu = () => {
@@ -73,7 +80,7 @@ const mainMenu = () => {
     });
 };
 
-const viewAlllDepartments = () => {
+const viewAllDepartments = () => {
     client.query('SELECT * FROM department', (err, res) => {
         if (err) throw err;
         console.table(res.rows);
@@ -204,6 +211,8 @@ const updateEmployeeRole = () => {
 };
 
 const startApp = async () => {
+    await createDatabase();
+    await client.connect();
     await initializeDatabase();
     mainMenu();
 };

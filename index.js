@@ -1,5 +1,7 @@
-const inquirer = require('inquirer');
+const fs = require('fs');
+const path = require('path');
 const { Client } = require('pg');
+const inquirer = require('inquirer');
 
 const client = new Client ({
     user: 'postgres',
@@ -10,6 +12,20 @@ const client = new Client ({
 });
 
 client.connect();
+
+const runSQLFile = async (filePath) => {
+    const sql = fs.readFileSync(path.join(__dirname, filePath)).toString();
+    try {
+        await client.query(sql);
+    } catch (err) {
+        console.error(`Error executing SQL file ${filePath}:`, err);
+    }
+};
+
+const initializeDatabase = async () => {
+    await runSQLFile('schema.sql');
+    await runSQLFile('seeds.sql');
+};
 
 const mainMenu = () => {
     inquirer.prompt({
@@ -134,3 +150,62 @@ const addRole = () => {
     });
 };
 
+const addEmployee = () => {
+    inquirer.prompt([
+        {
+            name: 'first_name',
+            type: 'input',
+            message: 'Enter the first name:'
+        },
+        {
+            name: 'last_name',
+            type: 'input',
+            message: 'Enter the last name:'
+        },
+        {
+            name: 'role_id',
+            type: 'input',
+            message: 'Enter the role ID:'
+        },
+        {
+            name: 'manager_id',
+            type: 'input',
+            message: 'Enter the manager ID (or leave blank if none):',
+            default: null
+        }
+    ]).then((answers) => {
+        client.query('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ($1, $2, $3, $4)', [answers.first_name, answers.last_name, answers.role_id, answers.manager_id], (err, res) => {
+            if (err) throw err;
+            console.log('Employee added!');
+            mainMenu();
+        });
+    });
+};
+
+const updateEmployeeRole = () => {
+    inquirer.prompt([
+        {
+            name: 'employee_id',
+            type: 'input',
+            message: 'Enter the employee ID to update:'
+        },
+        {
+            name: 'new_role_id',
+            type: 'input',
+            message: 'Enter the new role ID:'
+        }
+    ]).then((answers) => {
+        client.query('UPDATE employee SET role_id = $1 WHERE id = $2', [answers.new_role_id, answers.employee_id], (err, res) => {
+            if (err) throw err;
+            console.log('Employee role updated!');
+            mainMenu();
+        });
+    });
+};
+
+const startApp = async () => {
+    await initializeDatabase();
+    mainMenu();
+};
+
+startApp();

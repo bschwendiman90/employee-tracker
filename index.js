@@ -5,13 +5,14 @@ const inquirer = require('inquirer');
 
 const dbConfig = new Client ({
     user: 'postgres',
-    host: 'localhost',
+    password: "password",
     database: 'employee_db',
-    password: 'password',
+    host: 'localhost',
     port:5432,
 });
 
-
+console.log(dbConfig.password)
+const client = new Client(dbConfig)
 
 const runSQLFile = async (client, filePath) => {
     const sql = fs.readFileSync(path.join(__dirname, filePath)).toString();

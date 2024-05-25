@@ -10,9 +10,10 @@ The npm packages must first be instialled using npm i. the index.js file needs t
 
 ## Usage
 
-    ```md
-    ![alt text](assets/images/screenshot.png)
-    ```
+
+    [Walkthrough video](https://drive.google.com/file/d/108QXFDAUYwBPgjbOl1r9P_FbWD9efW67/view)
+    [View Employees Screenshot](assets\images\Screenshot 2024-05-24 210945.png)
+
 
 
 ## License

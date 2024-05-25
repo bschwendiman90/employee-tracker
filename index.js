@@ -3,7 +3,7 @@ const path = require('path');
 const { Client } = require('pg');
 const inquirer = require('inquirer');
 
-const dbConfig = new Client ({
+const client = new Client ({
     user: 'postgres',
     password: "password",
     database: 'employee_db',
@@ -11,29 +11,7 @@ const dbConfig = new Client ({
     port:5432,
 });
 
-console.log(dbConfig.password)
-const client = new Client(dbConfig)
-
-const runSQLFile = async (client, filePath) => {
-    const sql = fs.readFileSync(path.join(__dirname, filePath)).toString();
-    try {
-        await client.query(sql);
-    } catch (err) {
-        console.error(`Error executing SQL file ${filePath}:`, err);
-    }
-};
-
-const createDatabase = async () => {
-    const tempClient = new Client( {...dbConfig, database: 'postgres'}); // Connect to default 'postgres' database
-    await tempClient.connect();
-    await runSQLFile(tempClient, 'db/create_database.sql');
-    await tempClient.end();
-};
-
-const initializeDatabase = async () => {
-    await runSQLFile('db/schema.sql');
-    await runSQLFile('db/seeds.sql');
-};
+client.connect()
 
 const mainMenu = () => {
     inquirer.prompt({
@@ -51,6 +29,7 @@ const mainMenu = () => {
             'Exit'
         ]
     }).then((answer) => {
+        console.log(answer)
         switch (answer.action) {
             case 'View all departments':
                 viewAllDepartments();
@@ -82,6 +61,7 @@ const mainMenu = () => {
 };
 
 const viewAllDepartments = () => {
+    console.log('viewAllDepartments')
     client.query('SELECT * FROM department', (err, res) => {
         if (err) throw err;
         console.table(res.rows);
@@ -178,9 +158,23 @@ const addEmployee = () => {
         {
             name: 'manager_id',
             type: 'input',
-            message: 'Enter the manager ID (or leave blank if none):',
-            default: null
-        }
+            message: 'Enter the manager ID (enter null if none):',
+            validate: input => {
+                if (typeof input !== 'string' || input.trim() === '') {
+                  return true;
+                }
+                const parsed = parseInt(input, 10);
+                const valid = !isNaN(parsed);
+                return valid || 'Please enter a valid integer or leave blank';
+              },
+              filter: input => {
+                if (typeof input !== 'string' || input.trim() === '') {
+                  return null;
+                }
+                const parsed = parseInt(input, 10);
+                return isNaN(parsed) ? null : parsed;
+              }
+        }  
     ]).then((answers) => {
         client.query('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES ($1, $2, $3, $4)', [answers.first_name, answers.last_name, answers.role_id, answers.manager_id], (err, res) => {
             if (err) throw err;
@@ -212,9 +206,9 @@ const updateEmployeeRole = () => {
 };
 
 const startApp = async () => {
-    await createDatabase();
-    await client.connect();
-    await initializeDatabase();
+    // await createDatabase();
+    // await client.connect();
+    // await initializeDatabase();
     mainMenu();
 };
 
